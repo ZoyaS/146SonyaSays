@@ -1,4 +1,4 @@
-/*
+//GPIO commands/*
  * ============================================
  * Project: Sonya Says Memory Game
  * Platform: TI MSPM0G3507 LaunchPad
@@ -45,6 +45,7 @@
  */
 
 #include "ti_msp_dl_config.h"
+#include "pattern_verification.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -95,11 +96,77 @@ void print_sequence() { // just for debugging Sequence Manager
     printf("\n");
 }
 
+PatternVerifier verifier;
+
+uint8_t pattern[MAX_PATTERN_LENGTH];
+
+PatternVerifier_init(&verifier);
 
 int main(void)
 {
-    SYSCFG_DL_init();  /
+    
+    SYSCFG_DL_init();
+    //initialize digital output
+    DL_GPIO_initDigitalOutput(IOMUX_PINCM19); // initialize PA8 --> red LED
+    DL_GPIO_initDigitalOutput(IOMUX_PINCM59); // initialize PA26 --> blue LED
+    DL_GPIO_initDigitalOutput(IOMUX_PINCM52); // intialize PB24 --> green LED
+    DL_GPIO_initDigitalOutput(IOMUX_PINCM26); // intialize PB9 --> white LED
 
+    DL_GPIO_initDigitalOutput(IOMUX_PINCM6); // initialize PA31 --> red button
+    DL_GPIO_initDigitalOutput(IOMUX_PINCM48); // initialize PB20 --> blue button
+    DL_GPIO_initDigitalOutput(IOMUX_PINCM30); // intialize PB13 --> green button
+    DL_GPIO_initDigitalOutput(IOMUX_PINCM21); // intialize PA10 --> white button (black)
+
+    //enable output
+    DL_GPIO_enableOutput(GPIOA, DL_GPIO_PIN_8); // PA8 --> red LED
+    DL_GPIO_enableOutput(GPIOA, DL_GPIO_PIN_26); // PA26 --> blue LED
+    DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_24); // PB24 --> green LED
+    DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_9); // PB9 --> white LED
+
+    DL_GPIO_enableOutput(GPIOA, DL_GPIO_PIN_31); // PA31 --> red button
+    DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_20); // PB20 --> blue button
+    DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_13); // PB13 --> green button
+    DL_GPIO_enableOutput(GPIOA, DL_GPIO_PIN_10); // PA10 --> white button (black)
+
+    //clear pins
+    DL_GPIO_clearPins(GPIOA, DL_GPIO_PIN_8); // PA8 --> red LED
+    DL_GPIO_clearPins(GPIOA, DL_GPIO_PIN_26); // PA26 --> blue LED
+    DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_24); // PB24 --> green LED
+    DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_9); // PB9 --> white LED
+
+    DL_GPIO_clearPins(GPIOA, DL_GPIO_PIN_31); // PA31 --> red button
+    DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_20); // PB20 --> blue button
+    DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_13); // PB13 --> green button
+    DL_GPIO_clearPins(GPIOA, DL_GPIO_PIN_10); // PA10 --> white button (black)
+
+    
+    
+
+
+
+
+    uint8_t buttonPressed;  // comes from your input module
+
+    // PATTERN VERIFCATION
+
+        PatternResult result;
+
+        result = PatternVerifier_checkInput(&verifier, buttonPressed, pattern);
+
+        if (result == PATTERN_STILL_CORRECT)
+        {
+            // keep waiting for next button press
+        }
+        else if (result == PATTERN_ROUND_COMPLETE)
+        {
+            PatternVerifier_nextLevel(&verifier);
+            // move to SUCCESS state → next round
+        }
+        else if (result == PATTERN_WRONG_INPUT)
+        {
+            PatternVerifier_resetToBase(&verifier);
+            // move to ERROR state → reset game
+        }
     
     srand(1); 
 
