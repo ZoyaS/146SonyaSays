@@ -1,0 +1,46 @@
+# =========================
+# Build output folders
+# =========================
+Debug/
+Release/
+*/Debug/
+*/Release/
+
+# =========================
+# Compiled / generated files
+# =========================
+*.out
+*.obj
+*.o
+*.d
+*.map
+*.hex
+*.bin
+*.elf
+*.lst
+
+# =========================
+# CCS / Eclipse metadata
+# =========================
+.metadata/
+.settings/
+*.launch
+
+# =========================
+# Temporary / auto-generated
+# =========================
+*.log
+*.tmp
+
+# =========================
+# OS-specific files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Optional: ignore SDKs / large external deps
+# (ONLY if not required in repo)
+# =========================
+# MSPM0_SDK/
+# ti/
