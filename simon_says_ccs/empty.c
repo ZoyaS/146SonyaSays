@@ -1,4 +1,4 @@
-/*
+//GPIO commands/*
  * ============================================
  * Project: Sonya Says Memory Game
  * Platform: TI MSPM0G3507 LaunchPad
