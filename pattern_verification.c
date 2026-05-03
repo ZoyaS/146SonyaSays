@@ -62,3 +62,5 @@ void PatternVerifier_resetToBase(PatternVerifier *verifier)
     verifier->patternLength = BASE_PATTERN_LENGTH;
     verifier->level = 1;
 }
+
+// test commit
