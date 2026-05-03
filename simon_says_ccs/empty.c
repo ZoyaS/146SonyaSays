@@ -172,6 +172,35 @@ void print_sequence() { // just for debugging Sequence Manager
     printf("\n");
 }
 
+uint8_t waitForButtonPress()
+{
+    while (1) {
+        if (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31)) { // red button
+            delay_cycles(800000); // debounce
+            while (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31));
+            return RED;
+        }
+
+        if (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20)) { // blue button
+            delay_cycles(800000); // debounce
+            while (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20));
+            return BLUE;
+        }
+
+        if (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13)) { // green button
+            delay_cycles(800000); // debounce
+            while (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13));
+            return GREEN;
+        }
+
+        if (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_10)) { // white button
+            delay_cycles(800000); // debounce
+            while (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_10));
+            return WHITE;
+        }
+    }
+}
+
 
 int main(void)
 {
@@ -211,17 +240,24 @@ int main(void)
         while (verifier.currentIndex < seq_length) {
             uint8_t buttonPressed;  // comes from your input module
 
-            // Replace test line with some sort of wait?
-            buttonPressed = sequence[verifier.currentIndex];
+            buttonPressed = waitForButtonPress();
 
             // PATTERN VERIFCATION
             PatternResult result;
 
             result = PatternVerifier_checkInput(&verifier, buttonPressed, sequence);
 
-            if (result == PATTERN_STILL_CORRECT)
+            if (result == PATTERN_WRONG_INPUT)
             {
-                // keep waiting for next button press
+                PatternVerifier_resetToBase(&verifier);
+                // move to ERROR state → reset game
+
+                reset_sequence();
+                init_sequence();
+                print_sequence();
+
+                delay_cycles(LED_ON_DELAY);
+                break;
             }
             else if (result == PATTERN_ROUND_COMPLETE)
             {
@@ -230,18 +266,6 @@ int main(void)
 
                 // if passed round, continue with next generate
                 generate_next_step();
-                print_sequence();
-
-                delay_cycles(LED_ON_DELAY);
-                break;
-            }
-            else if (result == PATTERN_WRONG_INPUT)
-            {
-                PatternVerifier_resetToBase(&verifier);
-                // move to ERROR state → reset game
-
-                reset_sequence();
-                init_sequence();
                 print_sequence();
 
                 delay_cycles(LED_ON_DELAY);
