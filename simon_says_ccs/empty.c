@@ -88,6 +88,31 @@ uint8_t seq_length = 0; //tracks how many valid elements are currently in the se
 
 PatternVerifier verifier;
 
+
+void intializeDigitalInputsOutputs(){
+    DL_GPIO_initDigitalOutput(IOMUX_PINCM19); // initialize PA8 --> red LED
+    DL_GPIO_initDigitalOutput(IOMUX_PINCM59); // initialize PA26 --> blue LED
+    DL_GPIO_initDigitalOutput(IOMUX_PINCM52); // intialize PB24 --> green LED
+    DL_GPIO_initDigitalOutput(IOMUX_PINCM26); // intialize PB9 --> white LED
+
+    DL_GPIO_initDigitalInput(IOMUX_PINCM6); // initialize PA31 --> red button
+    DL_GPIO_initDigitalInput(IOMUX_PINCM48); // initialize PB20 --> blue button
+    DL_GPIO_initDigitalInput(IOMUX_PINCM30); // intialize PB13 --> green button
+    DL_GPIO_initDigitalInput(IOMUX_PINCM21); // intialize PA10 --> white button (black)
+
+}
+void enableInputOutputs(){
+    DL_GPIO_enableOutput(GPIOA, DL_GPIO_PIN_8); // PA8 --> red LED
+    DL_GPIO_enableOutput(GPIOA, DL_GPIO_PIN_26); // PA26 --> blue LED
+    DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_24); // PB24 --> green LED
+    DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_9); // PB9 --> white LED
+
+    DL_GPIO_enableInput(GPIOA, DL_GPIO_PIN_31); // PA31 --> red button
+    DL_GPIO_enableInput(GPIOB, DL_GPIO_PIN_20); // PB20 --> blue button
+    DL_GPIO_enableInput(GPIOB, DL_GPIO_PIN_13); // PB13 --> green button
+    DL_GPIO_enableInput(GPIOA, DL_GPIO_PIN_10); // PA10 --> white button (black)
+}
+
 void turnOnLED(LEDColor led)
 {
     DL_GPIO_setPins(ledMap[led].port, ledMap[led].pin);
@@ -154,26 +179,9 @@ int main(void)
     SYSCFG_DL_init();
 
     //initialize digital output
-    DL_GPIO_initDigitalOutput(IOMUX_PINCM19); // initialize PA8 --> red LED
-    DL_GPIO_initDigitalOutput(IOMUX_PINCM59); // initialize PA26 --> blue LED
-    DL_GPIO_initDigitalOutput(IOMUX_PINCM52); // intialize PB24 --> green LED
-    DL_GPIO_initDigitalOutput(IOMUX_PINCM26); // intialize PB9 --> white LED
-
-    DL_GPIO_initDigitalOutput(IOMUX_PINCM6); // initialize PA31 --> red button
-    DL_GPIO_initDigitalOutput(IOMUX_PINCM48); // initialize PB20 --> blue button
-    DL_GPIO_initDigitalOutput(IOMUX_PINCM30); // intialize PB13 --> green button
-    DL_GPIO_initDigitalOutput(IOMUX_PINCM21); // intialize PA10 --> white button (black)
-
+    intializeDigitalInputsOutputs();
     //enable output
-    DL_GPIO_enableOutput(GPIOA, DL_GPIO_PIN_8); // PA8 --> red LED
-    DL_GPIO_enableOutput(GPIOA, DL_GPIO_PIN_26); // PA26 --> blue LED
-    DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_24); // PB24 --> green LED
-    DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_9); // PB9 --> white LED
-
-    DL_GPIO_enableOutput(GPIOA, DL_GPIO_PIN_31); // PA31 --> red button
-    DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_20); // PB20 --> blue button
-    DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_13); // PB13 --> green button
-    DL_GPIO_enableOutput(GPIOA, DL_GPIO_PIN_10); // PA10 --> white button (black)
+    enableInputOutputs();
 
     //clear pins
     DL_GPIO_clearPins(GPIOA, DL_GPIO_PIN_8); // PA8 --> red LED
@@ -203,7 +211,7 @@ int main(void)
         while (verifier.currentIndex < seq_length) {
             uint8_t buttonPressed;  // comes from your input module
 
-            // Replace test line with some sort of wait
+            // Replace test line with some sort of wait?
             buttonPressed = sequence[verifier.currentIndex];
 
             // PATTERN VERIFCATION
