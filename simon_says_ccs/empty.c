@@ -61,6 +61,7 @@ Seqeunce Manager design:
 #define MAX_SEQ 25   // max sequence length
 #define LED_ON_DELAY   32000000   // about 1 sec if CPU is 32 MHz
 #define LED_OFF_DELAY  8000000    // about 0.25 sec if CPU is 32 MHz
+#define DEBOUNCE_DELAY 800000
 
 typedef enum {
     RED,
@@ -88,6 +89,21 @@ uint8_t seq_length = 0; //tracks how many valid elements are currently in the se
 
 PatternVerifier verifier;
 
+const char* ledToString(uint8_t led)
+{
+    switch (led) {
+        case RED:
+            return "RED";
+        case BLUE:
+            return "BLUE";
+        case GREEN:
+            return "GREEN";
+        case WHITE:
+            return "WHITE";
+        default:
+            return "UNKNOWN";
+    }
+}
 
 void intializeDigitalInputsOutputs(){
     DL_GPIO_initDigitalOutput(IOMUX_PINCM19); // initialize PA8 --> red LED
@@ -167,7 +183,7 @@ void reset_sequence() { //clears sequence state when game restarts
 void print_sequence() { // just for debugging Sequence Manager
     printf("Sequence: ");
     for (int i = 0; i < seq_length; i++) {
-        printf("%d ", sequence[i]);
+        printf("%s ", ledToString(sequence[i]));
     }
     printf("\n");
 }
@@ -175,27 +191,31 @@ void print_sequence() { // just for debugging Sequence Manager
 uint8_t waitForButtonPress()
 {
     while (1) {
-        if (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31)) { // red button
-            delay_cycles(800000); // debounce
-            while (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31));
+        if (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31) & DL_GPIO_PIN_31) { // red button
+            delay_cycles(DEBOUNCE_DELAY); // debounce
+            while (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31) & DL_GPIO_PIN_31);
+            printf("PRESSED: RED_BUTTON\n");
             return RED;
         }
 
-        if (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20)) { // blue button
-            delay_cycles(800000); // debounce
-            while (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20));
+        if (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20) & DL_GPIO_PIN_20) { // blue button
+            delay_cycles(DEBOUNCE_DELAY); // debounce
+            while (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20) & DL_GPIO_PIN_20);
+            printf("PRESSED: BLUE_BUTTON\n");
             return BLUE;
         }
 
-        if (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13)) { // green button
-            delay_cycles(800000); // debounce
-            while (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13));
+        if (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13) & DL_GPIO_PIN_13) { // green button
+            delay_cycles(DEBOUNCE_DELAY); // debounce
+            while (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13) & DL_GPIO_PIN_13);
+            printf("PRESSED: GREEN_BUTTON\n");
             return GREEN;
         }
 
-        if (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_10)) { // white button
-            delay_cycles(800000); // debounce
-            while (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_10));
+        if (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_10) & DL_GPIO_PIN_10) { // white button
+            delay_cycles(DEBOUNCE_DELAY); // debounce
+            while (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_10) & DL_GPIO_PIN_10);
+            printf("PRESSED: WHITE_BUTTON\n");
             return WHITE;
         }
     }
@@ -218,11 +238,10 @@ int main(void)
     DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_24); // PB24 --> green LED
     DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_9); // PB9 --> white LED
 
-    DL_GPIO_clearPins(GPIOA, DL_GPIO_PIN_31); // PA31 --> red button
-    DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_20); // PB20 --> blue button
-    DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_13); // PB13 --> green button
-    DL_GPIO_clearPins(GPIOA, DL_GPIO_PIN_10); // PA10 --> white button (black)
-
+    // DL_GPIO_clearPins(GPIOA, DL_GPIO_PIN_31); // PA31 --> red button
+    // DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_20); // PB20 --> blue button
+    // DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_13); // PB13 --> green button
+    // DL_GPIO_clearPins(GPIOA, DL_GPIO_PIN_10);
 
     srand(1);
 
@@ -239,8 +258,15 @@ int main(void)
         // button input is waited for and verified
         while (verifier.currentIndex < seq_length) {
             uint8_t buttonPressed;  // comes from your input module
+            uint8_t expectedIndex;
 
             buttonPressed = waitForButtonPress();
+
+            expectedIndex = verifier.currentIndex;
+
+            printf("EXPECTED: %s, GOT: %s\n",
+                   ledToString(sequence[expectedIndex]),
+                   ledToString(buttonPressed));
 
             // PATTERN VERIFCATION
             PatternResult result;
@@ -251,6 +277,8 @@ int main(void)
             {
                 PatternVerifier_resetToBase(&verifier);
                 // move to ERROR state → reset game
+
+                printf("RESULT: WRONG INPUT. RESETTING GAME.\n");
 
                 reset_sequence();
                 init_sequence();
@@ -264,12 +292,18 @@ int main(void)
                 PatternVerifier_nextLevel(&verifier);
                 // move to SUCCESS state → next round
 
+                printf("RESULT: ROUND COMPLETE. NEXT ROUND.\n");
+
                 // if passed round, continue with next generate
                 generate_next_step();
                 print_sequence();
 
                 delay_cycles(LED_ON_DELAY);
                 break;
+            }
+            else
+            {
+                printf("RESULT: STILL CORRECT. WAITING FOR NEXT INPUT.\n");
             }
         }
     }
