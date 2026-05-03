@@ -31,13 +31,43 @@
  */
 
 #include "ti_msp_dl_config.h"
+#include "pattern_verification.h"
 #include <stdio.h>
 
+PatternVerifier verifier;
 
+uint8_t pattern[MAX_PATTERN_LENGTH];
+
+PatternVerifier_init(&verifier);
 
 int main(void)
 {
     SYSCFG_DL_init();
+
+    uint8_t buttonPressed;  // comes from your input module
+
+    // PATTERN VERIFCATION
+
+        PatternResult result;
+
+        result = PatternVerifier_checkInput(&verifier, buttonPressed, pattern);
+
+        if (result == PATTERN_STILL_CORRECT)
+        {
+            // keep waiting for next button press
+        }
+        else if (result == PATTERN_ROUND_COMPLETE)
+        {
+            PatternVerifier_nextLevel(&verifier);
+            // move to SUCCESS state → next round
+        }
+        else if (result == PATTERN_WRONG_INPUT)
+        {
+            PatternVerifier_resetToBase(&verifier);
+            // move to ERROR state → reset game
+        }
+
+    // PATTERN VERIFCATION
     
     while (1) {
     }
