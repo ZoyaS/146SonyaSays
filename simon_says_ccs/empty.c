@@ -47,6 +47,7 @@
 #include "ti_msp_dl_config.h"
 #include "pattern_verification.h"
 #include <stdio.h>
+
 #include <stdlib.h>
 #include <stdint.h>
 
@@ -102,6 +103,42 @@ uint8_t pattern[MAX_PATTERN_LENGTH];
 
 PatternVerifier_init(&verifier);
 
+GPIO_setOutputHighOnPin(PORT_X, PIN_Y){
+    //send power, turn own LEDs
+}
+
+GPIO_setOutputLowOnPin(PORT_X, PIN_Y){
+    //removepower, turn off LEDs
+}
+
+
+
+displayLED(LED){
+    port, pin = map[LED];
+    GPIO_setOutputHighOnPin(PORT_X, PIN_Y);
+    delay_cycles(); //define delay (1 second?)
+    GPIO_setOutputLowOnPin(PORT_X, PIN_Y);
+    
+}
+
+displayPattern(pattern){
+    for (LED in patterns){
+        if (LED = "red"){
+            //pick pin#
+            display(LED);
+        }
+        else if (LED = "blue"){
+            
+
+        }
+        else if (LED = "green"){
+
+        }
+        else if (LED = "white"){
+
+        }
+    }
+}
 int main(void)
 {
     
@@ -182,3 +219,4 @@ int main(void)
         // (FSM will go here later)
     }
 }
+
