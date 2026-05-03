@@ -1,4 +1,5 @@
-//GPIO commands/*
+//GPIO commands
+/*
  * ============================================
  * Project: Sonya Says Memory Game
  * Platform: TI MSPM0G3507 LaunchPad
@@ -47,7 +48,6 @@
 #include "ti_msp_dl_config.h"
 #include "pattern_verification.h"
 #include <stdio.h>
-
 #include <stdlib.h>
 #include <stdint.h>
 
@@ -59,17 +59,67 @@ Seqeunce Manager design:
 */
 
 #define MAX_SEQ 25   // max sequence length
+#define LED_ON_DELAY   32000000   // about 1 sec if CPU is 32 MHz
+#define LED_OFF_DELAY  8000000    // about 0.25 sec if CPU is 32 MHz
+
+typedef enum {
+    RED,
+    BLUE,
+    GREEN,
+    WHITE
+} LEDColor;
+
+typedef struct {
+    GPIO_Regs *port;
+    uint32_t pin;
+} LEDPin;
+
+/* External LED pin map */
+LEDPin ledMap[4] = {
+    {GPIOA, DL_GPIO_PIN_8},    // RED    PA8
+    {GPIOA, DL_GPIO_PIN_26},   // BLUE   PA26
+    {GPIOB, DL_GPIO_PIN_24},   // GREEN  PB24
+    {GPIOB, DL_GPIO_PIN_9}     // WHITE  PB9
+};
 
 
 uint8_t sequence[MAX_SEQ]; //each value corresponds to one LED/button
 uint8_t seq_length = 0; //tracks how many valid elements are currently in the sequence
 
+PatternVerifier verifier;
+
+void turnOnLED(LEDColor led)
+{
+    DL_GPIO_setPins(ledMap[led].port, ledMap[led].pin);
+}
+
+void turnOffLED(LEDColor led)
+{
+    DL_GPIO_clearPins(ledMap[led].port, ledMap[led].pin);
+}
+
+void displayLED(LEDColor led)
+{
+    turnOnLED(led);
+    delay_cycles(LED_ON_DELAY);
+    turnOffLED(led);
+    delay_cycles(LED_OFF_DELAY);
+}
+
+void displayPattern(uint8_t pattern[], uint8_t length)
+{
+    for (uint8_t i = 0; i < length; i++) {
+        displayLED((LEDColor) pattern[i]);
+    }
+}
 
 
-void init_sequence() { 
-    seq_length = 4;  // Round 1 starts with 4 elements
 
-    for (int i = 0; i < seq_length; i++) {
+void init_sequence() {
+    //round starts with 4
+    seq_length = BASE_PATTERN_LENGTH;
+
+    for (int i = 0; i < BASE_PATTERN_LENGTH; i++) {
         sequence[i] = rand() % 4;  // generate values between 0–3
     }
 }
@@ -97,70 +147,12 @@ void print_sequence() { // just for debugging Sequence Manager
     printf("\n");
 }
 
-PatternVerifier verifier;
-
-uint8_t pattern[MAX_PATTERN_LENGTH];
-
-PatternVerifier_init(&verifier);
-
-
-GPIO_setOutputHighOnPin(PORT_X, PIN_Y){
-    //send power, turn own LEDs
-}
-
-GPIO_setOutputLowOnPin(PORT_X, PIN_Y){
-    //removepower, turn off LEDs
-}
-
-
-
-displayLED(LED){
-    port, pin = map[LED];
-    GPIO_setOutputHighOnPin(PORT_X, PIN_Y);
-}
-
-void turnOffLED(){
-    GPIO_setOutputLowOnPin(PORT_X, PIN_Y);
-}
-
-typedef enum {
-    RED,
-    BLUE,
-    GREEN,
-    WHITE
-} LEDColor;
-
-int getPinFromColor(LEDColor color) {
-    switch(color) {
-        case RED:   return PIN_RED;
-        case BLUE:  return PIN_BLUE;
-        case GREEN: return PIN_GREEN;
-        case WHITE: return PIN_WHITE;
-        default:    return PIN_RED;
-    }
-}
-
-void displayLED(int pin) {
-    turnOnLED(pin);
-    delay_cycles(500000);
-    turnOffLED(pin);
-    delay_cycles(200000);   
-}
-
-void displayPattern(LEDColor pattern[], int length) {
-    int i;
-    for (i = 0; i < length; i++) {
-        int pin = getPinFromColor(pattern[i]);
-        displayLED(pin);
-    }
-}
-
-
 
 int main(void)
 {
-    
+
     SYSCFG_DL_init();
+
     //initialize digital output
     DL_GPIO_initDigitalOutput(IOMUX_PINCM19); // initialize PA8 --> red LED
     DL_GPIO_initDigitalOutput(IOMUX_PINCM59); // initialize PA26 --> blue LED
@@ -194,49 +186,59 @@ int main(void)
     DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_13); // PB13 --> green button
     DL_GPIO_clearPins(GPIOA, DL_GPIO_PIN_10); // PA10 --> white button (black)
 
-    
-    
 
+    srand(1);
 
-
-
-    uint8_t buttonPressed;  // comes from your input module
-
-    // PATTERN VERIFCATION
-
-        PatternResult result;
-
-        result = PatternVerifier_checkInput(&verifier, buttonPressed, pattern);
-
-        if (result == PATTERN_STILL_CORRECT)
-        {
-            // keep waiting for next button press
-        }
-        else if (result == PATTERN_ROUND_COMPLETE)
-        {
-            PatternVerifier_nextLevel(&verifier);
-            // move to SUCCESS state → next round
-        }
-        else if (result == PATTERN_WRONG_INPUT)
-        {
-            PatternVerifier_resetToBase(&verifier);
-            // move to ERROR state → reset game
-        }
-    
-    srand(1); 
+    PatternVerifier_init(&verifier);
 
     // test: initialize first pattern
     init_sequence();
     print_sequence();
 
-    // test: simulate next round
-    generate_next_step();
-    print_sequence();
-    initLEDs();
-    LEDColor pattern[5] = {RED, BLUE, GREEN, RED, WHITE};
     while (1) {
-        displayPattern(pattern, 5);
-        delay_cycles(1000000);
+        // sequence is created, then the current pattern is displayed
+        displayPattern(sequence, seq_length);
+
+        // button input is waited for and verified
+        while (verifier.currentIndex < seq_length) {
+            uint8_t buttonPressed;  // comes from your input module
+
+            // Replace test line with some sort of wait
+            buttonPressed = sequence[verifier.currentIndex];
+
+            // PATTERN VERIFCATION
+            PatternResult result;
+
+            result = PatternVerifier_checkInput(&verifier, buttonPressed, sequence);
+
+            if (result == PATTERN_STILL_CORRECT)
+            {
+                // keep waiting for next button press
+            }
+            else if (result == PATTERN_ROUND_COMPLETE)
+            {
+                PatternVerifier_nextLevel(&verifier);
+                // move to SUCCESS state → next round
+
+                // if passed round, continue with next generate
+                generate_next_step();
+                print_sequence();
+
+                delay_cycles(LED_ON_DELAY);
+                break;
+            }
+            else if (result == PATTERN_WRONG_INPUT)
+            {
+                PatternVerifier_resetToBase(&verifier);
+                // move to ERROR state → reset game
+
+                reset_sequence();
+                init_sequence();
+                print_sequence();
+
+                delay_cycles(LED_ON_DELAY);
+                break;
+            }
+        }
     }
 }
-
