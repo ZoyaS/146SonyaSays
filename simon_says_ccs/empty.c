@@ -31,44 +31,73 @@
  */
 
 #include "ti_msp_dl_config.h"
-#include "pattern_verification.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 
-PatternVerifier verifier;
+/*
+Seqeunce Manager design:
+ - Sequence is stored in a fixed-size array (memory constrained system)
+ - Each LED is represented as a value from 0–3
+ - Sequence grows by 1 element per round
+*/
 
-uint8_t pattern[MAX_PATTERN_LENGTH];
+#define MAX_SEQ 25   // max sequence length
 
-PatternVerifier_init(&verifier);
+
+uint8_t sequence[MAX_SEQ]; //each value corresponds to one LED/button
+uint8_t seq_length = 0; //tracks how many valid elements are currently in the sequence
+
+
+
+void init_sequence() { 
+    seq_length = 4;  // Round 1 starts with 4 elements
+
+    for (int i = 0; i < seq_length; i++) {
+        sequence[i] = rand() % 4;  // generate values between 0–3
+    }
+}
+
+
+void generate_next_step() { //extends sequence by appending by 1 random LED
+    if (seq_length >= MAX_SEQ) {
+        // prevents writing past array bounds
+        return;
+    }
+
+    sequence[seq_length] = rand() % 4;  // Generate next LED
+    seq_length++;  // increase sequence size
+}
+
+void reset_sequence() { //clears sequence state when game restarts
+    seq_length = 0;
+}
+
+void print_sequence() { // just for debugging Sequence Manager
+    printf("Sequence: ");
+    for (int i = 0; i < seq_length; i++) {
+        printf("%d ", sequence[i]);
+    }
+    printf("\n");
+}
+
 
 int main(void)
 {
-    SYSCFG_DL_init();
+    SYSCFG_DL_init();  /
 
-    uint8_t buttonPressed;  // comes from your input module
-
-    // PATTERN VERIFCATION
-
-        PatternResult result;
-
-        result = PatternVerifier_checkInput(&verifier, buttonPressed, pattern);
-
-        if (result == PATTERN_STILL_CORRECT)
-        {
-            // keep waiting for next button press
-        }
-        else if (result == PATTERN_ROUND_COMPLETE)
-        {
-            PatternVerifier_nextLevel(&verifier);
-            // move to SUCCESS state → next round
-        }
-        else if (result == PATTERN_WRONG_INPUT)
-        {
-            PatternVerifier_resetToBase(&verifier);
-            // move to ERROR state → reset game
-        }
-
-    // PATTERN VERIFCATION
     
+    srand(1); 
+
+    // test: initialize first pattern
+    init_sequence();
+    print_sequence();
+
+    // test: simulate next round
+    generate_next_step();
+    print_sequence();
+
     while (1) {
+        // (FSM will go here later)
     }
 }
