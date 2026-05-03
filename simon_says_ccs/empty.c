@@ -47,6 +47,7 @@
 #include "ti_msp_dl_config.h"
 #include "pattern_verification.h"
 #include <stdio.h>
+
 #include <stdlib.h>
 #include <stdint.h>
 
@@ -101,6 +102,60 @@ PatternVerifier verifier;
 uint8_t pattern[MAX_PATTERN_LENGTH];
 
 PatternVerifier_init(&verifier);
+
+
+GPIO_setOutputHighOnPin(PORT_X, PIN_Y){
+    //send power, turn own LEDs
+}
+
+GPIO_setOutputLowOnPin(PORT_X, PIN_Y){
+    //removepower, turn off LEDs
+}
+
+
+
+displayLED(LED){
+    port, pin = map[LED];
+    GPIO_setOutputHighOnPin(PORT_X, PIN_Y);
+}
+
+void turnOffLED(){
+    GPIO_setOutputLowOnPin(PORT_X, PIN_Y);
+}
+
+typedef enum {
+    RED,
+    BLUE,
+    GREEN,
+    WHITE
+} LEDColor;
+
+int getPinFromColor(LEDColor color) {
+    switch(color) {
+        case RED:   return PIN_RED;
+        case BLUE:  return PIN_BLUE;
+        case GREEN: return PIN_GREEN;
+        case WHITE: return PIN_WHITE;
+        default:    return PIN_RED;
+    }
+}
+
+void displayLED(int pin) {
+    turnOnLED(pin);
+    delay_cycles(500000);
+    turnOffLED(pin);
+    delay_cycles(200000);   
+}
+
+void displayPattern(LEDColor pattern[], int length) {
+    int i;
+    for (i = 0; i < length; i++) {
+        int pin = getPinFromColor(pattern[i]);
+        displayLED(pin);
+    }
+}
+
+
 
 int main(void)
 {
@@ -177,8 +232,11 @@ int main(void)
     // test: simulate next round
     generate_next_step();
     print_sequence();
-
+    initLEDs();
+    LEDColor pattern[5] = {RED, BLUE, GREEN, RED, WHITE};
     while (1) {
-        // (FSM will go here later)
+        displayPattern(pattern, 5);
+        delay_cycles(1000000);
     }
 }
+
