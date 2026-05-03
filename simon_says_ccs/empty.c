@@ -1,4 +1,18 @@
 /*
+ * ============================================
+ * Project: Sonya Says Memory Game
+ * Platform: TI MSPM0G3507 LaunchPad
+ *
+ * Description:
+ * This project implements a "Simon Says" style memory game using LEDs
+ * for pattern display and buttons for user input. The system generates
+ * a sequence of LED patterns that the user must replicate.
+ *
+ * Authors: Aleeza Huraira, Jasmine Kurian, Gul Nayab, Eden Reader, Zoya Shamak
+ * Course: CMPE 146 Sec 01
+ * Due Date: May 15, 2026
+ * ============================================
+ *
  * Copyright (c) 2021, Texas Instruments Incorporated
  * All rights reserved.
  *
