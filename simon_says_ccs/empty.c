@@ -60,7 +60,7 @@ Seqeunce Manager design:
 
 #define MAX_SEQ 25   // max sequence length
 #define LED_ON_DELAY   32000000   // about 1 sec if CPU is 32 MHz
-#define LED_OFF_DELAY  8000000    // about 0.25 sec if CPU is 32 MHz
+#define LED_OFF_DELAY  800000    // about 0.25 sec if CPU is 32 MHz
 #define DEBOUNCE_DELAY 800000
 
 typedef enum {
@@ -200,6 +200,7 @@ uint8_t waitForButtonPress()
             delay_cycles(DEBOUNCE_DELAY); // debounce
             while (!(DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31) & DL_GPIO_PIN_31));
             printf("PRESSED: RED_BUTTON\n");
+            displayLED(RED);
             return RED;
         }
 
@@ -207,6 +208,7 @@ uint8_t waitForButtonPress()
             delay_cycles(DEBOUNCE_DELAY); // debounce
             while (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20) & DL_GPIO_PIN_20));
             printf("PRESSED: BLUE_BUTTON\n");
+            displayLED(BLUE);
             return BLUE;
         }
 
@@ -214,6 +216,8 @@ uint8_t waitForButtonPress()
             delay_cycles(DEBOUNCE_DELAY); // debounce
             while (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13) & DL_GPIO_PIN_13));
             printf("PRESSED: GREEN_BUTTON\n");
+            displayLED(GREEN);
+
             return GREEN;
         }
 
@@ -221,10 +225,12 @@ uint8_t waitForButtonPress()
             delay_cycles(DEBOUNCE_DELAY); // debounce
             while (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_1) & DL_GPIO_PIN_1));
             printf("PRESSED: WHITE_BUTTON\n");
+            displayLED(WHITE);
             return WHITE;
         }
     }
 }
+
 
 
 int main(void)
