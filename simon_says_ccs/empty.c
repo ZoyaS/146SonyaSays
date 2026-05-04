@@ -52,6 +52,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#define CPU_FREQ_HZ 32000000
+#define SUCCESS_FREQ_HZ 2000
+#define ERROR_FREQ_HZ   3000
 
 #define INPUT_TIMEOUT_MS 3000
 #define NO_BUTTON 255
@@ -66,7 +69,10 @@ Seqeunce Manager design:
 #define MAX_SEQ 25   // max sequence length
 #define LED_ON_DELAY   32000000   // about 1 sec if CPU is 32 MHz
 #define LED_OFF_DELAY  800000    // about 0.25 sec if CPU is 32 MHz
+#define LED_OFF_DELAY_FINAL  1600000    // about 0.5 sec if CPU is 32 MHz
 #define DEBOUNCE_DELAY 800000
+
+#define MAX_ROUNDS 3
 
 typedef enum {
     RED,
@@ -125,6 +131,7 @@ void intializeDigitalInputsOutputs(){
     DL_GPIO_initDigitalOutput(IOMUX_PINCM15); // initialize PB2 --> blue LED
     DL_GPIO_initDigitalOutput(IOMUX_PINCM52); // intialize PB24 --> green LED
     DL_GPIO_initDigitalOutput(IOMUX_PINCM26); // intialize PB9 --> white LED
+    DL_GPIO_initDigitalOutput(IOMUX_PINCM24); // initialize PB7 --> speaker/buzzer
 
     DL_GPIO_initDigitalInputFeatures(IOMUX_PINCM6, DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_PULL_UP, DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE); // initialize PA31 --> red button
     DL_GPIO_initDigitalInputFeatures(IOMUX_PINCM48, DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_PULL_UP, DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE); // initialize PB20 --> blue button
@@ -137,6 +144,7 @@ void enableInputOutputs(){
     DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_2); // PB2 --> blue LED
     DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_24); // PB24 --> green LED
     DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_9); // PB9 --> white LED
+    DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_7); // PB7 --> passive buzzer
 }
 
 void turnOnLED(LEDColor led)
@@ -163,7 +171,6 @@ void displayPattern(uint8_t pattern[], uint8_t length)
         displayLED((LEDColor) pattern[i]);
     }
 }
-
 
 
 void init_sequence() {
@@ -201,7 +208,7 @@ void print_sequence() { // just for debugging Sequence Manager
 uint8_t waitForButtonPress()
 {
     uint32_t startTime = Timer_getTicks();
-    uint32_t timeoutTicks = (40000000 / 1000) * INPUT_TIMEOUT_MS;
+    uint32_t timeoutTicks = (320000000 / 1000) * INPUT_TIMEOUT_MS;
 
     while (1) {
 
@@ -214,36 +221,62 @@ uint8_t waitForButtonPress()
         if (!(DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31) & DL_GPIO_PIN_31)) {
             delay_cycles(DEBOUNCE_DELAY);
             while (!(DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31) & DL_GPIO_PIN_31));
-            printf("PRESSED: RED_BUTTON\n");
             displayLED(RED);
+            printf("PRESSED: RED_BUTTON\n");
             return RED;
         }
 
         if (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20) & DL_GPIO_PIN_20)) {
             delay_cycles(DEBOUNCE_DELAY);
             while (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20) & DL_GPIO_PIN_20));
-            printf("PRESSED: BLUE_BUTTON\n");
             displayLED(BLUE);
+            printf("PRESSED: BLUE_BUTTON\n");
             return BLUE;
         }
 
         if (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13) & DL_GPIO_PIN_13)) {
             delay_cycles(DEBOUNCE_DELAY);
             while (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13) & DL_GPIO_PIN_13));
-            printf("PRESSED: GREEN_BUTTON\n");
             displayLED(GREEN);
+            printf("PRESSED: GREEN_BUTTON\n");
             return GREEN;
         }
 
         if (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_1) & DL_GPIO_PIN_1)) {
             delay_cycles(DEBOUNCE_DELAY);
             while (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_1) & DL_GPIO_PIN_1));
-            printf("PRESSED: WHITE_BUTTON\n");
             displayLED(WHITE);
+            printf("PRESSED: WHITE_BUTTON\n");
             return WHITE;
         }
     }
 }
+
+void playTone(uint32_t frequency, uint32_t duration_ms)
+{
+    uint32_t halfPeriod_us = 1000000 / (frequency * 2);
+    uint32_t cycles = (duration_ms * 1000) / (halfPeriod_us * 2);
+
+    for (uint32_t i = 0; i < cycles; i++)
+    {
+        DL_GPIO_setPins(GPIOB, DL_GPIO_PIN_7);
+        delay_cycles((CPU_FREQ_HZ / 1000000) * halfPeriod_us);
+
+        DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_7);
+        delay_cycles((CPU_FREQ_HZ / 1000000) * halfPeriod_us);
+    }
+}
+void startErrorBuzzer(){
+    playTone(ERROR_FREQ_HZ, 400);
+}
+
+void startSuccessorBuzzer(){
+    playTone(SUCCESS_FREQ_HZ, 150);
+    delay_cycles((CPU_FREQ_HZ / 1000000) * 50000);
+    playTone(2300, 150);
+    
+}
+
 
 void displayErrorLEDPattern(){
     for (int i = 0; i < 3; i++){
@@ -251,6 +284,7 @@ void displayErrorLEDPattern(){
         turnOnLED(GREEN);
         turnOnLED(BLUE);
         turnOnLED(WHITE);
+        startErrorBuzzer();
         delay_cycles(8000000);
         turnOffLED(RED);
         turnOffLED(GREEN);
@@ -260,6 +294,51 @@ void displayErrorLEDPattern(){
     }
 }
 
+void displayFinalSuccessLEDPattern(){
+    for (int i = 0; i < 3; i++){
+        //start sound
+        turnOnLED(BLUE);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+        turnOffLED(BLUE);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+
+        turnOnLED(RED);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+        turnOffLED(RED);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+
+        turnOnLED(GREEN);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+        turnOffLED(GREEN);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+
+        turnOnLED(WHITE);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+        turnOffLED(WHITE);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+        
+        //wave down
+        turnOnLED(WHITE);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+        turnOffLED(WHITE);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+        
+        turnOnLED(GREEN);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+        turnOffLED(GREEN);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+
+        turnOnLED(RED);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+        turnOffLED(RED);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+        
+        turnOnLED(BLUE);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+        turnOffLED(BLUE);
+        delay_cycles(LED_OFF_DELAY_FINAL);
+    }
+}
 
 int main(void)
 {
@@ -279,11 +358,6 @@ int main(void)
     DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_24); // PB24 --> green LED
     DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_9); // PB9 --> white LED
 
-    // DL_GPIO_clearPins(GPIOA, DL_GPIO_PIN_31); // PA31 --> red button
-    // DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_20); // PB20 --> blue button
-    // DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_13); // PB13 --> green button
-    // DL_GPIO_clearPins(GPIOA, DL_GPIO_PIN_10);
-
     printButtonStates();
 
     srand(1);
@@ -293,7 +367,7 @@ int main(void)
     // test: initialize first pattern
     init_sequence();
     print_sequence();
-
+    int counter = 0;
     while (1) {
         // sequence is created, then the current pattern is displayed
         displayPattern(sequence, seq_length);
@@ -338,6 +412,7 @@ int main(void)
 
                 printf("RESULT: WRONG INPUT. RESETTING GAME.\n");
                 displayErrorLEDPattern();
+                counter = 0;
 
                 reset_sequence();
                 init_sequence();
@@ -350,7 +425,7 @@ int main(void)
             {
                 PatternVerifier_nextLevel(&verifier);
                 // move to SUCCESS state → next round
-
+                counter++;
                 printf("RESULT: ROUND COMPLETE. NEXT ROUND.\n");
 
                 // if passed round, continue with next generate
@@ -363,7 +438,13 @@ int main(void)
             else
             {
                 printf("RESULT: STILL CORRECT. WAITING FOR NEXT INPUT.\n");
-            }
+            }   
+        }
+        startSuccessorBuzzer();
+        if (counter == MAX_ROUNDS){
+            break;
         }
     }
+    displayFinalSuccessLEDPattern();
+    return 0;
 }
