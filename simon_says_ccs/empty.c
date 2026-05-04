@@ -78,7 +78,7 @@ typedef struct {
 /* External LED pin map */
 LEDPin ledMap[4] = {
     {GPIOA, DL_GPIO_PIN_8},    // RED    PA8
-    {GPIOA, DL_GPIO_PIN_26},   // BLUE   PA26
+    {GPIOB, DL_GPIO_PIN_2},   // BLUE   PA26
     {GPIOB, DL_GPIO_PIN_24},   // GREEN  PB24
     {GPIOB, DL_GPIO_PIN_9}     // WHITE  PB9
 };
@@ -105,28 +105,33 @@ const char* ledToString(uint8_t led)
     }
 }
 
+void printButtonStates()
+{
+    printf("RAW BUTTONS: RED=%d BLUE=%d GREEN=%d WHITE=%d\n",
+        (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31) & DL_GPIO_PIN_31) ? 1 : 0,
+        (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20) & DL_GPIO_PIN_20) ? 1 : 0,
+        (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13) & DL_GPIO_PIN_13) ? 1 : 0,
+        (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_10) & DL_GPIO_PIN_10) ? 1 : 0
+    );
+}
+
 void intializeDigitalInputsOutputs(){
     DL_GPIO_initDigitalOutput(IOMUX_PINCM19); // initialize PA8 --> red LED
-    DL_GPIO_initDigitalOutput(IOMUX_PINCM59); // initialize PA26 --> blue LED
+    DL_GPIO_initDigitalOutput(IOMUX_PINCM15); // initialize PB2 --> blue LED
     DL_GPIO_initDigitalOutput(IOMUX_PINCM52); // intialize PB24 --> green LED
     DL_GPIO_initDigitalOutput(IOMUX_PINCM26); // intialize PB9 --> white LED
 
-    DL_GPIO_initDigitalInput(IOMUX_PINCM6); // initialize PA31 --> red button
-    DL_GPIO_initDigitalInput(IOMUX_PINCM48); // initialize PB20 --> blue button
-    DL_GPIO_initDigitalInput(IOMUX_PINCM30); // intialize PB13 --> green button
-    DL_GPIO_initDigitalInput(IOMUX_PINCM21); // intialize PA10 --> white button (black)
+    DL_GPIO_initDigitalInputFeatures(IOMUX_PINCM6, DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_PULL_UP, DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE); // initialize PA31 --> red button
+    DL_GPIO_initDigitalInputFeatures(IOMUX_PINCM48, DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_PULL_UP, DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE); // initialize PB20 --> blue button
+    DL_GPIO_initDigitalInputFeatures(IOMUX_PINCM30, DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_PULL_UP, DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE); // intialize PB13 --> green button
+    DL_GPIO_initDigitalInputFeatures(IOMUX_PINCM13, DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_PULL_UP, DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE); // intialize PA10 --> white button (black)
 
 }
 void enableInputOutputs(){
     DL_GPIO_enableOutput(GPIOA, DL_GPIO_PIN_8); // PA8 --> red LED
-    DL_GPIO_enableOutput(GPIOA, DL_GPIO_PIN_26); // PA26 --> blue LED
+    DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_2); // PB2 --> blue LED
     DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_24); // PB24 --> green LED
     DL_GPIO_enableOutput(GPIOB, DL_GPIO_PIN_9); // PB9 --> white LED
-
-    DL_GPIO_enableInput(GPIOA, DL_GPIO_PIN_31); // PA31 --> red button
-    DL_GPIO_enableInput(GPIOB, DL_GPIO_PIN_20); // PB20 --> blue button
-    DL_GPIO_enableInput(GPIOB, DL_GPIO_PIN_13); // PB13 --> green button
-    DL_GPIO_enableInput(GPIOA, DL_GPIO_PIN_10); // PA10 --> white button (black)
 }
 
 void turnOnLED(LEDColor led)
@@ -191,30 +196,30 @@ void print_sequence() { // just for debugging Sequence Manager
 uint8_t waitForButtonPress()
 {
     while (1) {
-        if (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31) & DL_GPIO_PIN_31) { // red button
+        if (!(DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31) & DL_GPIO_PIN_31)) { // red button
             delay_cycles(DEBOUNCE_DELAY); // debounce
-            while (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31) & DL_GPIO_PIN_31);
+            while (!(DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31) & DL_GPIO_PIN_31));
             printf("PRESSED: RED_BUTTON\n");
             return RED;
         }
 
-        if (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20) & DL_GPIO_PIN_20) { // blue button
+        if (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20) & DL_GPIO_PIN_20)) { // blue button
             delay_cycles(DEBOUNCE_DELAY); // debounce
-            while (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20) & DL_GPIO_PIN_20);
+            while (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20) & DL_GPIO_PIN_20));
             printf("PRESSED: BLUE_BUTTON\n");
             return BLUE;
         }
 
-        if (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13) & DL_GPIO_PIN_13) { // green button
+        if (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13) & DL_GPIO_PIN_13)) { // green button
             delay_cycles(DEBOUNCE_DELAY); // debounce
-            while (DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13) & DL_GPIO_PIN_13);
+            while (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13) & DL_GPIO_PIN_13));
             printf("PRESSED: GREEN_BUTTON\n");
             return GREEN;
         }
 
-        if (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_10) & DL_GPIO_PIN_10) { // white button
+        if (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_1) & DL_GPIO_PIN_1)) { // white button
             delay_cycles(DEBOUNCE_DELAY); // debounce
-            while (DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_10) & DL_GPIO_PIN_10);
+            while (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_1) & DL_GPIO_PIN_1));
             printf("PRESSED: WHITE_BUTTON\n");
             return WHITE;
         }
@@ -234,7 +239,7 @@ int main(void)
 
     //clear pins
     DL_GPIO_clearPins(GPIOA, DL_GPIO_PIN_8); // PA8 --> red LED
-    DL_GPIO_clearPins(GPIOA, DL_GPIO_PIN_26); // PA26 --> blue LED
+    DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_2); // PA26 --> blue LED
     DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_24); // PB24 --> green LED
     DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_9); // PB9 --> white LED
 
@@ -242,6 +247,8 @@ int main(void)
     // DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_20); // PB20 --> blue button
     // DL_GPIO_clearPins(GPIOB, DL_GPIO_PIN_13); // PB13 --> green button
     // DL_GPIO_clearPins(GPIOA, DL_GPIO_PIN_10);
+
+    printButtonStates();
 
     srand(1);
 
