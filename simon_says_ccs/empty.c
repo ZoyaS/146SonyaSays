@@ -47,10 +47,14 @@
 
 #include "ti_msp_dl_config.h"
 #include "pattern_verification.h"
-#include "timer.h"
+#include "timer.h"  
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+
+
+#define INPUT_TIMEOUT_MS 3000
+#define NO_BUTTON 255
 
 /*
 Seqeunce Manager design:
@@ -60,16 +64,9 @@ Seqeunce Manager design:
 */
 
 #define MAX_SEQ 25   // max sequence length
-
-//convert to ms
-#define LED_ON_DELAY_MS   1000
-#define LED_OFF_DELAY_MS  250
-#define DEBOUNCE_DELAY_MS 20
-
-// #define LED_ON_DELAY   32000000   // about 1 sec if CPU is 32 MHz
-// #define LED_OFF_DELAY  800000    // about 0.25 sec if CPU is 32 MHz
-// #define DEBOUNCE_DELAY 800000
-
+#define LED_ON_DELAY   32000000   // about 1 sec if CPU is 32 MHz
+#define LED_OFF_DELAY  800000    // about 0.25 sec if CPU is 32 MHz
+#define DEBOUNCE_DELAY 800000
 
 typedef enum {
     RED,
@@ -155,9 +152,9 @@ void turnOffLED(LEDColor led)
 void displayLED(LEDColor led)
 {
     turnOnLED(led);
-    Timer_delayMs(LED_ON_DELAY); //updated for timer
+    delay_cycles(LED_ON_DELAY);
     turnOffLED(led);
-     Timer_delayMs(LED_OFF_DELAY); //updated for timer
+    delay_cycles(LED_OFF_DELAY);
 }
 
 void displayPattern(uint8_t pattern[], uint8_t length)
@@ -203,34 +200,43 @@ void print_sequence() { // just for debugging Sequence Manager
 
 uint8_t waitForButtonPress()
 {
+    uint32_t startTime = Timer_getTicks();
+    uint32_t timeoutTicks = (32000000 / 1000) * INPUT_TIMEOUT_MS;
+
     while (1) {
-        if (!(DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31) & DL_GPIO_PIN_31)) { // red button
-            delay_cycles(DEBOUNCE_DELAY); // debounce
+
+        // ⏱ TIMEOUT CHECK
+        if ((uint32_t)(Timer_getTicks() - startTime) >= timeoutTicks) {
+            printf("TIMEOUT: No button pressed\n");
+            return NO_BUTTON;
+        }
+
+        if (!(DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31) & DL_GPIO_PIN_31)) {
+            delay_cycles(DEBOUNCE_DELAY);
             while (!(DL_GPIO_readPins(GPIOA, DL_GPIO_PIN_31) & DL_GPIO_PIN_31));
             printf("PRESSED: RED_BUTTON\n");
             displayLED(RED);
             return RED;
         }
 
-        if (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20) & DL_GPIO_PIN_20)) { // blue button
-            delay_cycles(DEBOUNCE_DELAY); // debounce
+        if (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20) & DL_GPIO_PIN_20)) {
+            delay_cycles(DEBOUNCE_DELAY);
             while (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_20) & DL_GPIO_PIN_20));
             printf("PRESSED: BLUE_BUTTON\n");
             displayLED(BLUE);
             return BLUE;
         }
 
-        if (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13) & DL_GPIO_PIN_13)) { // green button
-            delay_cycles(DEBOUNCE_DELAY); // debounce
+        if (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13) & DL_GPIO_PIN_13)) {
+            delay_cycles(DEBOUNCE_DELAY);
             while (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_13) & DL_GPIO_PIN_13));
             printf("PRESSED: GREEN_BUTTON\n");
             displayLED(GREEN);
-
             return GREEN;
         }
 
-        if (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_1) & DL_GPIO_PIN_1)) { // white button
-            delay_cycles(DEBOUNCE_DELAY); // debounce
+        if (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_1) & DL_GPIO_PIN_1)) {
+            delay_cycles(DEBOUNCE_DELAY);
             while (!(DL_GPIO_readPins(GPIOB, DL_GPIO_PIN_1) & DL_GPIO_PIN_1));
             printf("PRESSED: WHITE_BUTTON\n");
             displayLED(WHITE);
@@ -245,12 +251,12 @@ void displayErrorLEDPattern(){
         turnOnLED(GREEN);
         turnOnLED(BLUE);
         turnOnLED(WHITE);
-        Timer_delayMs(250); //updated for timer
+        delay_cycles(8000000);
         turnOffLED(RED);
         turnOffLED(GREEN);
         turnOffLED(BLUE);
         turnOffLED(WHITE);
-        Timer_delayMs(250); //updated for timer
+        delay_cycles(8000000);
     }
 }
 
@@ -260,7 +266,7 @@ int main(void)
 
     SYSCFG_DL_init();
 
-    Timer_init(); 
+    Timer_init();
 
     //initialize digital output
     intializeDigitalInputsOutputs();
@@ -299,6 +305,21 @@ int main(void)
 
             buttonPressed = waitForButtonPress();
 
+            if (buttonPressed == NO_BUTTON)
+            {
+                printf("RESULT: TIMEOUT. RESETTING GAME.\n");
+
+                displayErrorLEDPattern();
+
+                PatternVerifier_resetToBase(&verifier);
+                reset_sequence();
+                init_sequence();
+                print_sequence();
+
+                delay_cycles(LED_ON_DELAY);
+                break;
+            }
+
             expectedIndex = verifier.currentIndex;
 
             printf("EXPECTED: %s, GOT: %s\n",
@@ -322,7 +343,7 @@ int main(void)
                 init_sequence();
                 print_sequence();
 
-                Timer_delayMs(1000); //replaced for timer
+                delay_cycles(LED_ON_DELAY);
                 break;
             }
             else if (result == PATTERN_ROUND_COMPLETE)
@@ -336,7 +357,7 @@ int main(void)
                 generate_next_step();
                 print_sequence();
 
-                Timer_delayMs(1000); //replaced for timer
+                delay_cycles(LED_ON_DELAY);
                 break;
             }
             else
