@@ -231,6 +231,20 @@ uint8_t waitForButtonPress()
     }
 }
 
+void displayErrorLEDPattern(){
+    for (int i = 0; i < 3; i++){
+        turnOnLED(RED);
+        turnOnLED(GREEN);
+        turnOnLED(BLUE);
+        turnOnLED(WHITE);
+        delay_cycles(8000000);
+        turnOffLED(RED);
+        turnOffLED(GREEN);
+        turnOffLED(BLUE);
+        turnOffLED(WHITE);
+        delay_cycles(8000000);
+    }
+}
 
 
 int main(void)
@@ -292,6 +306,7 @@ int main(void)
                 // move to ERROR state → reset game
 
                 printf("RESULT: WRONG INPUT. RESETTING GAME.\n");
+                displayErrorLEDPattern();
 
                 reset_sequence();
                 init_sequence();
