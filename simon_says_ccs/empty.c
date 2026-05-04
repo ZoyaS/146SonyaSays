@@ -47,6 +47,7 @@
 
 #include "ti_msp_dl_config.h"
 #include "pattern_verification.h"
+#include "timer.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -59,9 +60,16 @@ Seqeunce Manager design:
 */
 
 #define MAX_SEQ 25   // max sequence length
-#define LED_ON_DELAY   32000000   // about 1 sec if CPU is 32 MHz
-#define LED_OFF_DELAY  800000    // about 0.25 sec if CPU is 32 MHz
-#define DEBOUNCE_DELAY 800000
+
+//convert to ms
+#define LED_ON_DELAY_MS   1000
+#define LED_OFF_DELAY_MS  250
+#define DEBOUNCE_DELAY_MS 20
+
+// #define LED_ON_DELAY   32000000   // about 1 sec if CPU is 32 MHz
+// #define LED_OFF_DELAY  800000    // about 0.25 sec if CPU is 32 MHz
+// #define DEBOUNCE_DELAY 800000
+
 
 typedef enum {
     RED,
@@ -147,9 +155,9 @@ void turnOffLED(LEDColor led)
 void displayLED(LEDColor led)
 {
     turnOnLED(led);
-    delay_cycles(LED_ON_DELAY);
+    Timer_delayMs(LED_ON_DELAY); //updated for timer
     turnOffLED(led);
-    delay_cycles(LED_OFF_DELAY);
+     Timer_delayMs(LED_OFF_DELAY); //updated for timer
 }
 
 void displayPattern(uint8_t pattern[], uint8_t length)
@@ -237,12 +245,12 @@ void displayErrorLEDPattern(){
         turnOnLED(GREEN);
         turnOnLED(BLUE);
         turnOnLED(WHITE);
-        delay_cycles(8000000);
+        Timer_delayMs(250); //updated for timer
         turnOffLED(RED);
         turnOffLED(GREEN);
         turnOffLED(BLUE);
         turnOffLED(WHITE);
-        delay_cycles(8000000);
+        Timer_delayMs(250); //updated for timer
     }
 }
 
@@ -251,6 +259,8 @@ int main(void)
 {
 
     SYSCFG_DL_init();
+
+    Timer_init(); 
 
     //initialize digital output
     intializeDigitalInputsOutputs();
@@ -312,7 +322,7 @@ int main(void)
                 init_sequence();
                 print_sequence();
 
-                delay_cycles(LED_ON_DELAY);
+                Timer_delayMs(1000); //replaced for timer
                 break;
             }
             else if (result == PATTERN_ROUND_COMPLETE)
@@ -326,7 +336,7 @@ int main(void)
                 generate_next_step();
                 print_sequence();
 
-                delay_cycles(LED_ON_DELAY);
+                Timer_delayMs(1000); //replaced for timer
                 break;
             }
             else
