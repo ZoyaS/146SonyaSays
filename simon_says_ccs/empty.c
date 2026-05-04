@@ -201,7 +201,7 @@ void print_sequence() { // just for debugging Sequence Manager
 uint8_t waitForButtonPress()
 {
     uint32_t startTime = Timer_getTicks();
-    uint32_t timeoutTicks = (32000000 / 1000) * INPUT_TIMEOUT_MS;
+    uint32_t timeoutTicks = (40000000 / 1000) * INPUT_TIMEOUT_MS;
 
     while (1) {
 
