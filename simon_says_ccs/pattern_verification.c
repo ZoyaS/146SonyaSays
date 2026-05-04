@@ -1,19 +1,4 @@
-#include <stdint.h>
-
-#define BASE_PATTERN_LENGTH 4
-#define MAX_PATTERN_LENGTH 25
-
-typedef enum {
-    PATTERN_STILL_CORRECT,
-    PATTERN_ROUND_COMPLETE,
-    PATTERN_WRONG_INPUT
-} PatternResult;
-
-typedef struct {
-    uint8_t currentIndex;
-    uint8_t patternLength;
-    uint8_t level;
-} PatternVerifier;
+#include "pattern_verification.h"
 
 void PatternVerifier_init(PatternVerifier *verifier)
 {
@@ -28,27 +13,39 @@ PatternResult PatternVerifier_checkInput(
     const uint8_t pattern[]
 )
 {
-    uint8_t expectedInput = pattern[verifier->currentIndex];
-
-    if (userInput != expectedInput)
-    {
-        return PATTERN_WRONG_INPUT;
-    }
-
-    verifier->currentIndex++;
-
+    // Safety check (prevents out-of-bounds access)
     if (verifier->currentIndex >= verifier->patternLength)
     {
         return PATTERN_ROUND_COMPLETE;
     }
 
+    uint8_t expectedInput = pattern[verifier->currentIndex];
+
+    // Check if user input matches expected pattern
+    if (userInput != expectedInput)
+    {
+        return PATTERN_WRONG_INPUT;
+    }
+
+    // Move to next position in sequence
+    verifier->currentIndex++;
+
+    // Check if user completed full sequence
+    if (verifier->currentIndex >= verifier->patternLength)
+    {
+        return PATTERN_ROUND_COMPLETE;
+    }
+
+    // Otherwise still correct, keep going
     return PATTERN_STILL_CORRECT;
 }
 
 void PatternVerifier_nextLevel(PatternVerifier *verifier)
 {
+    // Reset index for next round
     verifier->currentIndex = 0;
 
+    // Increase difficulty (longer sequence)
     if (verifier->patternLength < MAX_PATTERN_LENGTH)
     {
         verifier->patternLength++;
@@ -58,9 +55,8 @@ void PatternVerifier_nextLevel(PatternVerifier *verifier)
 
 void PatternVerifier_resetToBase(PatternVerifier *verifier)
 {
+    // Reset everything back to starting level
     verifier->currentIndex = 0;
     verifier->patternLength = BASE_PATTERN_LENGTH;
     verifier->level = 1;
 }
-
-// test commit
